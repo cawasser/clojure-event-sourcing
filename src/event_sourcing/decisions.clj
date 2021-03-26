@@ -32,6 +32,6 @@
         (j/through (topic-config "flight-decisions"))
         (j/process! (fn [_ k v]
                       (println "SIDE EFFECT: Cleaning plane " k))
-                    [])
-        )
+                    []))
+
     builder))

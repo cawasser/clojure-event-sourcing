@@ -13,7 +13,7 @@
 (defn find-delays-topology [builder]
   (-> builder
       (j/kstream (topic-config "flight-events"))
-      (j/filter (fn [[k v] ]
+      (j/filter (fn [[k v]]
                   (and 
                    (= (:event-type v) :departed))))
       (j/map (fn [[k v]]

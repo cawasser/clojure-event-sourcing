@@ -238,7 +238,8 @@
 (comment
 
   (query/get-passengers @stream-app "UA1496")
-  (query/friends-onboard? @stream-app "UA1496" #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
+  (query/friends-onboard? @stream-app "UA1496"
+    #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
   )
 
 
@@ -253,11 +254,18 @@
   ;; Leslie Nielsen Departed
   (produce-one "flight-events"
                {:flight "UA1496"}
-               {:event-type :passenger-departed
+               {:event-type :passenger-boarded
                 :who "Leslie Nielsen"
                 :time #inst "2019-03-16T00:00:00.000-00:00"
                 :flight "UA1496"})
 
+  ;; Leslie Nielsen Departed
+  (produce-one "flight-events"
+    {:flight "UA1496"}
+    {:event-type :passenger-departed
+     :who "Leslie Nielsen"
+     :time #inst "2019-03-16T00:00:00.000-00:00"
+     :flight "UA1496"})
   ;; Robert Hays Departed
   (produce-one "flight-events"
                {:flight "UA1496"}

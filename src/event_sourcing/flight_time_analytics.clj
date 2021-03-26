@@ -9,7 +9,7 @@
 (defn build-time-joining-topology [builder]
   (let [flight-events (j/kstream builder (topic-config "flight-events"))
         departures (-> flight-events
-                       (j/filter (fn [[k v] ]
+                       (j/filter (fn [[k v]]
                                    (= (:event-type v) :departed))))
         arrivals (-> flight-events
                      (j/filter (fn [[k v]]
@@ -41,14 +41,14 @@
 (defn build-table-joining-topology [builder]
   (let [flight-events (j/kstream builder (topic-config "flight-events"))
         departures (-> flight-events
-                       (j/filter (fn [[k v] ]
+                       (j/filter (fn [[k v]]
                                    (= (:event-type v) :departed)))
                        (j/group-by-key)
                        (j/reduce (fn [ v1 v2]
                                    v2)
                                  (topic-config "flight-departures")))
         arrivals (-> flight-events
-                     (j/filter (fn [[k v] ]
+                     (j/filter (fn [[k v]]
                                  (= (:event-type v) :arrived))))]
     (-> arrivals
         (j/left-join departures
