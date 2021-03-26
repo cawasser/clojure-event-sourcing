@@ -20,16 +20,16 @@
 
 
 
-(def app-config {"bootstrap.servers" "localhost:9092"
-                 StreamsConfig/APPLICATION_ID_CONFIG "flight-app-8"
+(def app-config {"bootstrap.servers"                     "localhost:9092"
+                 StreamsConfig/APPLICATION_ID_CONFIG     "flight-app-8"
                  StreamsConfig/COMMIT_INTERVAL_MS_CONFIG 500
                  ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "latest"
-                 "acks"              "all"
-                 "retries"           "0"
-                 "cache.max.bytes.buffering" "0"})
+                 "acks"                                  "all"
+                 "retries"                               "0"
+                 "cache.max.bytes.buffering"             "0"})
 
 (defn produce-one
-  ([topic k v ]
+  ([topic k v]
    (with-open [producer (jc/producer app-config (topic-config topic))]
      @(jc/produce! producer (topic-config topic) k v))))
 
@@ -41,9 +41,9 @@
    (start-topology topology app-config))
   ([topology app-config]
    (let [streams-builder (j/streams-builder)
-         topology (topology streams-builder)
-         _ (println (-> topology j/streams-builder* .build .describe .toString))
-         kafka-streams (j/kafka-streams topology app-config)]
+         topology        (topology streams-builder)
+         _               (println (-> topology j/streams-builder* .build .describe .toString))
+         kafka-streams   (j/kafka-streams topology app-config)]
      (reset! stream-app kafka-streams)
      (j/start kafka-streams))))
 
@@ -57,14 +57,14 @@
 (defn monitor-topics
   ([topics]
    (reset! continue-monitoring? true)
-   (future 
+   (future
      (with-open [subscription (jc/subscribed-consumer (assoc app-config "group.id" "monitor")
-                                                      (map topic-config topics))]
+                                (map topic-config topics))]
        (loop [results (jc/poll subscription 200)]
          (doseq [{:keys [topic-name key value]} results]
            (println "Topic: " topic-name "\n"
-                    "Key:" key "\n"
-                    "Value:" (str/replace (with-out-str (clojure.pprint/pprint value)) #"\n" "\n       ")))
+             "Key:" key "\n"
+             "Value:" (str/replace (with-out-str (clojure.pprint/pprint value)) #"\n" "\n       ")))
          (if @continue-monitoring?
            (recur (jc/poll subscription 200))
            nil))))))
@@ -74,88 +74,88 @@
 (comment
   [{:flight "UA1496"}
    {:event-type :passenger-boarded
-    :who "Leslie Nielsen"
-    :time #inst "2019-03-16T00:00:00.000-00:00"
-    :flight "UA1496"}]
+    :who        "Leslie Nielsen"
+    :time       #inst "2019-03-16T00:00:00.000-00:00"
+    :flight     "UA1496"}]
 
   [{:flight "UA1496"}
-   {:event-type :departed
-    :time #inst "2019-03-16T00:00:00.000-00:00"
-    :flight "UA1496"
+   {:event-type          :departed
+    :time                #inst "2019-03-16T00:00:00.000-00:00"
+    :flight              "UA1496"
     :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"}]
 
   [{:flight "UA1496"}
    {:event-type :arrived
-    :time #inst "2019-03-17T04:00:00.000-00:00"
-    :flight "UA1496"}]
+    :time       #inst "2019-03-17T04:00:00.000-00:00"
+    :flight     "UA1496"}]
 
   [{:flight "UA1496"}
    {:event-type :passenger-departed
-    :who "Leslie Nielsen"
-    :time #inst "2019-03-17T05:00:00.000-00:00"
-    :flight "UA1496"}])
+    :who        "Leslie Nielsen"
+    :time       #inst "2019-03-17T05:00:00.000-00:00"
+    :flight     "UA1496"}])
 
 
 ;; EXAMPLE 1: Finds delayed flights from flight-events, writes to flight-status
-(comment 
+(comment
   (do (shutdown)
       (start-topology delay-finder/find-delays-topology)
       (monitor-topics ["flight-events" "flight-status"]))
 
   ;; delayed departure
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :departed
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"
-                :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"})
+    {:flight "UA1496"}
+    {:event-type          :departed
+     :time                #inst "2019-03-16T00:00:00.000-00:00"
+     :flight              "UA1496"
+     :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"})
 
   ;; on-time departure
   (produce-one "flight-events"
-               {:flight "UA1497"}
-               {:event-type :departed
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1497"
-                :scheduled-departure #inst "2019-03-16T00:00:00.000-00:00"})
+    {:flight "UA1497"}
+    {:event-type          :departed
+     :time                #inst "2019-03-16T00:00:00.000-00:00"
+     :flight              "UA1497"
+     :scheduled-departure #inst "2019-03-16T00:00:00.000-00:00"})
   )
 
 
 
 ;; EXAMPLE 2: How long is a flight in the air?
-(comment 
+(comment
   (do (shutdown)
-        (start-topology flight-time-analytics/build-time-joining-topology)
-        (monitor-topics ["flight-events" "flight-times"]))
+      (start-topology flight-time-analytics/build-time-joining-topology)
+      (monitor-topics ["flight-events" "flight-times"]))
 
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :departed
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"
-                :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"})
+    {:flight "UA1496"}
+    {:event-type          :departed
+     :time                #inst "2019-03-16T00:00:00.000-00:00"
+     :flight              "UA1496"
+     :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"})
 
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :arrived
-                :time #inst "2019-03-16T03:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :arrived
+     :time       #inst "2019-03-16T03:00:00.000-00:00"
+     :flight     "UA1496"})
 
   (do (shutdown)
-        (start-topology flight-time-analytics/build-table-joining-topology)
-        (monitor-topics ["flight-events" "flight-times"]))
+      (start-topology flight-time-analytics/build-table-joining-topology)
+      (monitor-topics ["flight-events" "flight-times"]))
 
   (produce-one "flight-events"
-               {:flight "UA1497"}
-               {:event-type :departed
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1497"
-                :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"})
+    {:flight "UA1497"}
+    {:event-type          :departed
+     :time                #inst "2019-03-16T00:00:00.000-00:00"
+     :flight              "UA1497"
+     :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"})
 
   (produce-one "flight-events"
-               {:flight "UA1497"}
-               {:event-type :arrived
-                :time #inst "2019-03-16T04:00:00.000-00:00"
-                :flight "UA1497"})
+    {:flight "UA1497"}
+    {:event-type :arrived
+     :time       #inst "2019-03-16T04:00:00.000-00:00"
+     :flight     "UA1497"})
   )
 
 
@@ -167,41 +167,41 @@
 
   ;; Leslie Nielsen boarded
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-boarded
-                :who "Leslie Nielsen"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-boarded
+     :who        "Leslie Nielsen"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
   (query/get-passengers @stream-app "UA1496")
 
   ;; Leslie Nielsen Departed
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-departed
-                :who "Leslie Nielsen"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-departed
+     :who        "Leslie Nielsen"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
-  
+
 
   (query/get-passengers @stream-app "UA1496")
 
   ;; Julie Hagerty boarded
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-boarded
-                :who "Julie Hagerty"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-boarded
+     :who        "Julie Hagerty"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
   ;; Julie Hagerty departed
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-departed
-                :who "Julie Hagerty"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-departed
+     :who        "Julie Hagerty"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
   )
 
 ;; EXAMPLE 4: Count passengers as they board the plane
@@ -212,11 +212,11 @@
 
   ;; Robert Hays boarded
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-boarded
-                :who "Robert Hays"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-boarded
+     :who        "Robert Hays"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
   (do (shutdown)
       (start-topology passenger-counting/build-boarded-decorating-topology-cleaner)
@@ -224,11 +224,11 @@
 
   ;; Julie Hagerty boarded
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-boarded
-                :who "Julie Hagerty"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-boarded
+     :who        "Julie Hagerty"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
 
   (query/get-passengers @stream-app "UA1496")
@@ -253,38 +253,37 @@
 
   ;; Leslie Nielsen Departed
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-boarded
-                :who "Leslie Nielsen"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-boarded
+     :who        "Leslie Nielsen"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
   ;; Leslie Nielsen Departed
   (produce-one "flight-events"
     {:flight "UA1496"}
     {:event-type :passenger-departed
-     :who "Leslie Nielsen"
-     :time #inst "2019-03-16T00:00:00.000-00:00"
-     :flight "UA1496"})
+     :who        "Leslie Nielsen"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
   ;; Robert Hays Departed
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-departed
-                :who "Robert Hays"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
+    {:flight "UA1496"}
+    {:event-type :passenger-departed
+     :who        "Robert Hays"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
 
   ;; Julie Hagerty Departed
   (produce-one "flight-events"
-               {:flight "UA1496"}
-               {:event-type :passenger-departed
-                :who "Julie Hagerty"
-                :time #inst "2019-03-16T00:00:00.000-00:00"
-                :flight "UA1496"})
-  
+    {:flight "UA1496"}
+    {:event-type :passenger-departed
+     :who        "Julie Hagerty"
+     :time       #inst "2019-03-16T00:00:00.000-00:00"
+     :flight     "UA1496"})
+
 
   (query/get-passengers @stream-app "UA1496")
-
 
   )
 
@@ -292,22 +291,22 @@
 (comment
   (do (shutdown)
       (start-topology decisions/build-clean-plane-topology
-                      (assoc app-config
-                             StreamsConfig/APPLICATION_ID_CONFIG "cleaning-planner-bugfix"
-                             ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "earliest"
-                             ))
+        (assoc app-config
+          StreamsConfig/APPLICATION_ID_CONFIG "cleaning-planner-bugfix"
+          ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "earliest"
+          ))
       (monitor-topics ["flight-events" "flight-decisions"]))
   )
 
 ;; EXAMPLE 8: Transducers
-#_(comment 
-  (do (shutdown)
-      (start-topology transducer/build-transducer-topology)
+#_(comment
+    (do (shutdown)
+        (start-topology transducer/build-transducer-topology)
         (monitor-topics ["flight-events" "transduced-events"]))
-  )
+    )
 
 
-(comment 
+(comment
   (shutdown)
   )
 
