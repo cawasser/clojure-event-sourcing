@@ -6,5 +6,5 @@
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.apache.kafka/kafka_2.12 "2.1.1"]
                  [org.apache.kafka/kafka-streams "2.1.1"]
-                 [fundingcircle/jackdaw "0.6.1"]
-                 ])
+                 [fundingcircle/jackdaw "0.6.1"]])
+

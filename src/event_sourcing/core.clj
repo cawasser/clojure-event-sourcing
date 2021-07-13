@@ -17,6 +17,32 @@
             [clojure.set :as set]
             [clojure.string :as str]))
 
+; git clone https://github.com/confluentinc/cp-docker-images.git
+; cd cp-docker-images/examples/kafka-single-node
+; docker-compose up -d
+
+;; OR
+
+; git clone https://github.com/confluentinc/cp-all-in-one.git
+; cd cp-all-in-one/cp-all-in-one
+; git checkout 6.2.0-post
+; docker-compose up          or docker-compose up -d
+;
+; if connecting from localhost, use localhost:9092,
+;        control-center:  localhost:9021
+;        schema-registry: localhost:8081
+;
+; if connecting from another docker container, use <container name>:<port>, such as broker:29092
+
+;; OR
+
+;; start kafka using one of the following:
+
+;; On Linux or Windows(?)
+; docker run --rm --net=host landoop/fast-data-dev
+
+;; On Mac
+; docker run --rm -p 2181:2181 -p 3030:3030 -p 8081-8083:8081-8083 -p 9581-9585:9581-9585 -p 9092:9092 -e ADV_HOST=localhost landoop/fast-data-dev:latest
 
 
 
@@ -39,6 +65,7 @@
 (defn start-topology
   ([topology]
    (start-topology topology app-config))
+
   ([topology app-config]
    (let [streams-builder (j/streams-builder)
          topology        (topology streams-builder)
@@ -93,7 +120,21 @@
    {:event-type :passenger-departed
     :who        "Leslie Nielsen"
     :time       #inst "2019-03-17T05:00:00.000-00:00"
-    :flight     "UA1496"}])
+    :flight     "UA1496"}]
+
+  [{:id (sha {:flight "UA1496"})
+    :event-type :passenger-boarded
+    :who        "Leslie Nielsen"
+    :time       #inst "2019-03-16T00:00:00.000-00:00"
+    :flight     "UA1496"}
+
+   {:id (sha {:flight "UA1496"})
+    :event-type          :departed
+    :time                #inst "2019-03-16T00:00:00.000-00:00"
+    :flight              "UA1496"
+    :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"}]
+
+  ())
 
 
 ;; EXAMPLE 1: Finds delayed flights from flight-events, writes to flight-status
@@ -116,8 +157,8 @@
     {:event-type          :departed
      :time                #inst "2019-03-16T00:00:00.000-00:00"
      :flight              "UA1497"
-     :scheduled-departure #inst "2019-03-16T00:00:00.000-00:00"})
-  )
+     :scheduled-departure #inst "2019-03-16T00:00:00.000-00:00"}))
+
 
 
 
@@ -140,6 +181,7 @@
      :time       #inst "2019-03-16T03:00:00.000-00:00"
      :flight     "UA1496"})
 
+  ;; region 2a) wait too long...
   (do (shutdown)
       (start-topology flight-time-analytics/build-table-joining-topology)
       (monitor-topics ["flight-events" "flight-times"]))
@@ -156,7 +198,9 @@
     {:event-type :arrived
      :time       #inst "2019-03-16T04:00:00.000-00:00"
      :flight     "UA1497"})
-  )
+  ;; endregion
+  ())
+
 
 
 ;; EXAMPLE 3: Who is on the plane?
@@ -201,8 +245,8 @@
     {:event-type :passenger-departed
      :who        "Julie Hagerty"
      :time       #inst "2019-03-16T00:00:00.000-00:00"
-     :flight     "UA1496"})
-  )
+     :flight     "UA1496"}))
+
 
 ;; EXAMPLE 4: Count passengers as they board the plane
 (comment
@@ -231,8 +275,8 @@
      :flight     "UA1496"})
 
 
-  (query/get-passengers @stream-app "UA1496")
-  )
+  (query/get-passengers @stream-app "UA1496"))
+
 
 ;; EXAMPLE 5: Are my friends on the plane?
 (comment
@@ -240,7 +284,14 @@
   (query/get-passengers @stream-app "UA1496")
   (query/friends-onboard? @stream-app "UA1496"
     #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
-  )
+
+  (query/friends-onboard-cleaner? @stream-app "UA1496"
+      #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
+
+  (query/friends-raw? @stream-app)
+
+  ())
+
 
 
 
@@ -285,7 +336,10 @@
 
   (query/get-passengers @stream-app "UA1496")
 
-  )
+
+  ())
+
+
 
 ;; EXAMPLE 7: Fixing a bug
 (comment
@@ -293,21 +347,21 @@
       (start-topology decisions/build-clean-plane-topology
         (assoc app-config
           StreamsConfig/APPLICATION_ID_CONFIG "cleaning-planner-bugfix"
-          ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "earliest"
-          ))
-      (monitor-topics ["flight-events" "flight-decisions"]))
-  )
+          ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "earliest"))
+
+      (monitor-topics ["flight-events" "flight-decisions"])))
+
 
 ;; EXAMPLE 8: Transducers
 #_(comment
     (do (shutdown)
         (start-topology transducer/build-transducer-topology)
-        (monitor-topics ["flight-events" "transduced-events"]))
-    )
+        (monitor-topics ["flight-events" "transduced-events"])))
+
 
 
 (comment
-  (shutdown)
-  )
+  (shutdown))
+
 
 

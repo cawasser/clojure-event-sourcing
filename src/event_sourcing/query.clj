@@ -18,3 +18,13 @@
       (.store "passenger-set" (QueryableStoreTypes/keyValueStore))
       (.get {:flight flight})
       (clojure.set/intersection friends)))
+
+
+(defn friends-onboard-cleaner? [streams flight friends]
+  (-> (get-passengers streams flight)
+    (clojure.set/intersection friends)))
+
+
+(defn friends-raw? [streams]
+  (-> streams
+    (.store "passenger-set" (QueryableStoreTypes/keyValueStore))))
