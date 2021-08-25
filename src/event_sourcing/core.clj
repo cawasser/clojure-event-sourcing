@@ -17,6 +17,8 @@
             [clojure.set :as set]
             [clojure.string :as str]))
 
+; from https://www.youtube.com/watch?v=qNn2ykAaKis
+
 ; git clone https://github.com/confluentinc/cp-docker-images.git
 ; cd cp-docker-images/examples/kafka-single-node
 ; docker-compose up -d
@@ -122,18 +124,6 @@
     :time       #inst "2019-03-17T05:00:00.000-00:00"
     :flight     "UA1496"}]
 
-  [{:id (sha {:flight "UA1496"})
-    :event-type :passenger-boarded
-    :who        "Leslie Nielsen"
-    :time       #inst "2019-03-16T00:00:00.000-00:00"
-    :flight     "UA1496"}
-
-   {:id (sha {:flight "UA1496"})
-    :event-type          :departed
-    :time                #inst "2019-03-16T00:00:00.000-00:00"
-    :flight              "UA1496"
-    :scheduled-departure #inst "2019-03-15T00:00:00.000-00:00"}]
-
   ())
 
 
@@ -157,7 +147,9 @@
     {:event-type          :departed
      :time                #inst "2019-03-16T00:00:00.000-00:00"
      :flight              "UA1497"
-     :scheduled-departure #inst "2019-03-16T00:00:00.000-00:00"}))
+     :scheduled-departure #inst "2019-03-16T00:00:00.000-00:00"})
+
+  ())
 
 
 
@@ -228,7 +220,6 @@
      :flight     "UA1496"})
 
 
-
   (query/get-passengers @stream-app "UA1496")
 
   ;; Julie Hagerty boarded
@@ -245,7 +236,9 @@
     {:event-type :passenger-departed
      :who        "Julie Hagerty"
      :time       #inst "2019-03-16T00:00:00.000-00:00"
-     :flight     "UA1496"}))
+     :flight     "UA1496"})
+
+  ())
 
 
 ;; EXAMPLE 4: Count passengers as they board the plane
@@ -275,7 +268,9 @@
      :flight     "UA1496"})
 
 
-  (query/get-passengers @stream-app "UA1496"))
+  (query/get-passengers @stream-app "UA1496")
+
+  ())
 
 
 ;; EXAMPLE 5: Are my friends on the plane?
@@ -353,10 +348,10 @@
 
 
 ;; EXAMPLE 8: Transducers
-#_(comment
-    (do (shutdown)
-        (start-topology transducer/build-transducer-topology)
-        (monitor-topics ["flight-events" "transduced-events"])))
+(comment
+  (do (shutdown)
+      (start-topology transducer/build-transducer-topology)
+      (monitor-topics ["flight-events" "transduced-events"])))
 
 
 
