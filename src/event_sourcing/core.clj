@@ -199,7 +199,7 @@
 (comment
   (do (shutdown)
       (start-topology passenger-counting/build-boarded-counting-topology)
-      (monitor-topics ["flight-events" "passenger"]))
+      (monitor-topics ["flight-events" "passenger-set"]))
 
   ;; Leslie Nielsen boarded
   (produce-one "flight-events"
@@ -239,6 +239,57 @@
      :flight     "UA1496"})
 
   ())
+
+
+;; EXAMPLE 3A: can we do something similar with AoIs?
+(comment
+  (do (shutdown)
+      (start-topology passenger-counting/build-aoi-status-topology)
+      (monitor-topics ["aois" "aoi-status"]))
+
+  ;; add an aoi
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  [7 7 "hidef" 0]
+     :aoi        "alpha"})
+
+  (query/get-one-aoi @stream-app "alpha")
+  ; how do we query for ALL keys?
+  (query/get-all-aois @stream-app)
+
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  [7 6 "hidef" 1]
+     :aoi        "alpha"})
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  [7 5 "hidef" 2]
+     :aoi        "alpha"})
+
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-removed
+     :aoi-needs  [7 6 "hidef" 1]
+     :aoi        "alpha"})
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  [7 4 "hidef" 3]
+     :aoi        "alpha"})
+
+
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-deleted
+     :aoi        "alpha"})
+
+
+
+  ())
+
 
 
 ;; EXAMPLE 4: Count passengers as they board the plane
@@ -281,7 +332,7 @@
     #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
 
   (query/friends-onboard-cleaner? @stream-app "UA1496"
-      #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
+    #{"Leslie Nielsen" "Julie Hagerty" "Peter Graves"})
 
   (query/friends-raw? @stream-app)
 
