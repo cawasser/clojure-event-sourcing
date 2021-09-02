@@ -31,7 +31,7 @@
 ; docker-compose up          or docker-compose up -d
 ;
 ; if connecting from localhost, use localhost:9092,
-;        control-center:  localhost:9021
+;        control-center:  localhost:3030
 ;        schema-registry: localhost:8081
 ;
 ; if connecting from another docker container, use <container name>:<port>, such as broker:29092
@@ -76,6 +76,17 @@
      (reset! stream-app kafka-streams)
      (j/start kafka-streams))))
 
+(defn start-flex-topology
+  ([topology f]
+   (start-flex-topology topology f app-config))
+
+  ([topology f app-config]
+   (let [streams-builder (j/streams-builder)
+         topology        (topology streams-builder f)
+         _               (println (-> topology j/streams-builder* .build .describe .toString))
+         kafka-streams   (j/kafka-streams topology app-config)]
+     (reset! stream-app kafka-streams)
+     (j/start kafka-streams))))
 (defn shutdown []
   (when @stream-app
     (j/close @stream-app))
@@ -244,8 +255,16 @@
 ;; EXAMPLE 3A: can we do something similar with AoIs?
 (comment
   (do (shutdown)
-      (start-topology passenger-counting/build-aoi-status-topology)
+      (start-flex-topology
+        passenger-counting/build-aoi-status-topology
+        passenger-counting/aoi->aoi-status-replace)
       (monitor-topics ["aois" "aoi-status"]))
+
+  (do (shutdown)
+    (start-flex-topology
+      passenger-counting/build-aoi-status-topology
+      passenger-counting/aoi->aoi-status-aggregated)
+    (monitor-topics ["aois" "aoi-status"]))
 
   ;; add an aoi
   (produce-one "aois"
@@ -255,8 +274,28 @@
      :aoi        "alpha"})
 
   (query/get-one-aoi @stream-app "alpha")
-  ; how do we query for ALL keys?
+  (query/get-one-aoi @stream-app "bravo")
+
   (query/get-all-aois @stream-app)
+  (query/get-all-values @stream-app "aoi-status")
+
+  (->> "aoi-status"
+    (query/get-all-values @stream-app)
+    (map (fn [[k v]]
+           {(:aoi k) v}))
+    (into {}))
+
+
+  (produce-one "aois"
+    {:aoi "bravo"}
+    {:event-type :aoi-added
+     :aoi-needs  [9 9 "hidef" 0]
+     :aoi        "bravo"})
+  (produce-one "aois"
+    {:aoi "bravo"}
+    {:event-type :aoi-added
+     :aoi-needs  [3 3 "hidef" 0]
+     :aoi        "bravo"})
 
   (produce-one "aois"
     {:aoi "alpha"}

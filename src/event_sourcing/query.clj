@@ -10,8 +10,8 @@
 
 (defn get-passengers [streams flight]
   (-> streams
-      (.store "passenger-set" (QueryableStoreTypes/keyValueStore))
-      (.get {:flight flight})))
+    (.store "passenger-set" (QueryableStoreTypes/keyValueStore))
+    (.get {:flight flight})))
 
 
 (defn get-one-aoi [streams aoi]
@@ -24,15 +24,27 @@
   (let [s (-> streams
             (.store "aoi-status" (QueryableStoreTypes/keyValueStore)))
         k (.all s)]
-    (map #(.get {:aoi %} s) k)))
+    (into {}
+      (map (fn [x]
+             {(.key x) (.value x)})
+        (iterator-seq k)))))
 
+
+(defn get-all-values [streams ktable-name]
+  (let [s (-> streams
+            (.store ktable-name (QueryableStoreTypes/keyValueStore)))
+        k (.all s)]
+    (into {}
+      (map (fn [x]
+             {(.key x) (.value x)})
+        (iterator-seq k)))))
 
 
 (defn friends-onboard? [streams flight friends]
   (-> streams
-      (.store "passenger-set" (QueryableStoreTypes/keyValueStore))
-      (.get {:flight flight})
-      (clojure.set/intersection friends)))
+    (.store "passenger-set" (QueryableStoreTypes/keyValueStore))
+    (.get {:flight flight})
+    (clojure.set/intersection friends)))
 
 
 (defn friends-onboard-cleaner? [streams flight friends]

@@ -16,8 +16,8 @@
     (j/aggregate (constantly #{})
       (fn [current-passengers [_ event]]
         (cond-> current-passengers
-         (= :passenger-boarded (:event-type event)) (conj (:who event))
-         (= :passenger-departed (:event-type event)) (disj (:who event))))
+          (= :passenger-boarded (:event-type event)) (conj (:who event))
+          (= :passenger-departed (:event-type event)) (disj (:who event))))
       (topic-config "passenger-set"))))
 
 (defn build-boarded-counting-topology [builder]
@@ -30,8 +30,10 @@
       (j/to (topic-config "passenger-set"))))
   builder)
 
+(defn- replace-val [_ new-val]
+  new-val)
 
-(defn aoi->aoi-status [aoi-events-stream]
+(defn aoi->aoi-status-aggregated [aoi-events-stream]
   (-> aoi-events-stream
     (j/filter (fn [[k v]]
                 (#{:aoi-added :aoi-removed :aoi-deleted} (:event-type v))))
@@ -45,11 +47,26 @@
           (= :aoi-deleted (:event-type event)) #{}))
       (topic-config "aoi-status"))))
 
+(defn aoi->aoi-status-replace [aoi-events-stream]
+  (-> aoi-events-stream
+    (j/filter (fn [[k v]]
+                (#{:aoi-added :aoi-removed :aoi-deleted} (:event-type v))))
+    (j/group-by-key)
+    (j/aggregate (constantly #{})
+      (fn [aoi-state [_ event]]
+        (prn aoi-state (:aoi-needs event))
+        (cond
+          (= :aoi-added (:event-type event)) #{(:aoi-needs event)}
+          (= :aoi-removed (:event-type event)) #{(:aoi-needs event)}
+          (= :aoi-deleted (:event-type event)) #{}))
+      (topic-config "aoi-status"))))
 
-(defn build-aoi-status-topology [builder]
+
+
+(defn build-aoi-status-topology [builder f]
   (let [aoi-events-stream (j/kstream builder (topic-config "aois"))]
     (-> aoi-events-stream
-      (aoi->aoi-status)
+      f
       (j/to-kstream)
       (j/to (topic-config "aoi-status"))))
   builder)
