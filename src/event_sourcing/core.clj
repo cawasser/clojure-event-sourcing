@@ -49,7 +49,7 @@
 
 
 (def app-config {"bootstrap.servers"                     "localhost:9092"
-                 StreamsConfig/APPLICATION_ID_CONFIG     "flight-app-8"
+                 StreamsConfig/APPLICATION_ID_CONFIG     "word-count-test"
                  StreamsConfig/COMMIT_INTERVAL_MS_CONFIG 500
                  ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "latest"
                  "acks"                                  "all"
@@ -256,30 +256,100 @@
 (comment
   (do (shutdown)
       (start-flex-topology
-        passenger-counting/build-aoi-status-topology
-        passenger-counting/aoi->aoi-status-replace)
-      (monitor-topics ["aois" "aoi-status"]))
+        passenger-counting/build-aoi-state-topology
+        passenger-counting/aoi->aoi-state-replace)
+      (monitor-topics ["aois" "aoi-state"]))
 
   (do (shutdown)
     (start-flex-topology
-      passenger-counting/build-aoi-status-topology
-      passenger-counting/aoi->aoi-status-aggregated)
-    (monitor-topics ["aois" "aoi-status"]))
+      passenger-counting/build-aoi-state-topology
+      passenger-counting/aoi->aoi-state-aggregated)
+    (monitor-topics ["aois" "aoi-state"]))
 
   ;; add an aoi
   (produce-one "aois"
     {:aoi "alpha"}
     {:event-type :aoi-added
-     :aoi-needs  [7 7 "hidef" 0]
+     :aoi-needs  #{[7 7 "hidef" 0]}
      :aoi        "alpha"})
+
+  (query/get-one-aoi @stream-app "aoi-state" "alpha")
+  (query/get-one-aoi @stream-app "aoi-state" "bravo")
+
+  (query/get-all-aois @stream-app)
+  (query/get-all-values @stream-app "aoi-state")
+
+  (->> "aoi-state"
+    (query/get-all-values @stream-app)
+    (map (fn [[k v]]
+           {(:aoi k) v}))
+    (into {}))
+
+  {:id "bravo"
+   :data-set (query/get-one-aoi @stream-app "aoi-state" "bravo")}
+
+
+
+  (produce-one "aois"
+    {:aoi "bravo"}
+    {:event-type :aoi-added
+     :aoi-needs  #{[9 9 "hidef" 0]}
+     :aoi        "bravo"})
+  (produce-one "aois"
+    {:aoi "bravo"}
+    {:event-type :aoi-added
+     :aoi-needs  #{[9 9 "hidef" 0] [3 3 "hidef" 0]}
+     :aoi        "bravo"})
+
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  #{[7 6 "hidef" 1]}
+     :aoi        "alpha"})
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  #{[7 5 "hidef" 2]}
+     :aoi        "alpha"})
+
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-removed
+     :aoi-needs  #{[7 6 "hidef" 1]}
+     :aoi        "alpha"})
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-added
+     :aoi-needs  #{[7 4 "hidef" 3]}
+     :aoi        "alpha"})
+
+
+  (produce-one "aois"
+    {:aoi "alpha"}
+    {:event-type :aoi-deleted
+     :aoi        "alpha"})
+
+
+
+  ())
+
+
+
+;; EXAMPLE 3B: how do we use the same KTable from 2 different apps?
+(comment
+  (do (shutdown)
+      (start-flex-topology
+        passenger-counting/build-state-topology
+        passenger-counting/aoi-state)
+      (monitor-topics ["aoi-state"]))
 
   (query/get-one-aoi @stream-app "alpha")
   (query/get-one-aoi @stream-app "bravo")
 
   (query/get-all-aois @stream-app)
-  (query/get-all-values @stream-app "aoi-status")
+  (query/get-all-values @stream-app "aoi-state")
 
-  (->> "aoi-status"
+  (->> "aoi-state"
     (query/get-all-values @stream-app)
     (map (fn [[k v]]
            {(:aoi k) v}))
@@ -328,6 +398,7 @@
 
 
   ())
+
 
 
 
@@ -443,6 +514,33 @@
       (start-topology transducer/build-transducer-topology)
       (monitor-topics ["flight-events" "transduced-events"])))
 
+
+
+;; EXAMPLE 9: word count...
+(comment
+  (do (shutdown)
+      (start-topology passenger-counting/word-count)
+      (monitor-topics ["streams-plaintext-input" "streams-wordcount-output"]))
+
+  ;; add an aoi
+  (produce-one "streams-plaintext-input"
+    {:aoi "alpha"}
+    {:val "here IS a String to test"})
+
+  (defn get-count [streams ktable-name]
+    (let [s (-> streams
+              (.store ktable-name (QueryableStoreTypes/keyValueStore)))
+          k (.all s)]
+      (into {}
+        (map (fn [x]
+               {(.key x) (.value x)})
+          (iterator-seq k)))))
+
+
+  (get-count @stream-app "counts-store")
+
+
+  ())
 
 
 (comment

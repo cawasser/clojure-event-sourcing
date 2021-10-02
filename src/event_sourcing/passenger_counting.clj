@@ -33,7 +33,7 @@
 (defn- replace-val [_ new-val]
   new-val)
 
-(defn aoi->aoi-status-aggregated [aoi-events-stream]
+(defn aoi->aoi-state-aggregated [aoi-events-stream]
   (-> aoi-events-stream
     (j/filter (fn [[k v]]
                 (#{:aoi-added :aoi-removed :aoi-deleted} (:event-type v))))
@@ -45,9 +45,9 @@
           (= :aoi-added (:event-type event)) (conj (:aoi-needs event))
           (= :aoi-removed (:event-type event)) (disj (:aoi-needs event))
           (= :aoi-deleted (:event-type event)) #{}))
-      (topic-config "aoi-status"))))
+      (topic-config "aoi-state"))))
 
-(defn aoi->aoi-status-replace [aoi-events-stream]
+(defn aoi->aoi-state-replace [aoi-events-stream]
   (-> aoi-events-stream
     (j/filter (fn [[k v]]
                 (#{:aoi-added :aoi-removed :aoi-deleted} (:event-type v))))
@@ -56,20 +56,54 @@
       (fn [aoi-state [_ event]]
         (prn aoi-state (:aoi-needs event))
         (cond
-          (= :aoi-added (:event-type event)) #{(:aoi-needs event)}
-          (= :aoi-removed (:event-type event)) #{(:aoi-needs event)}
+          (= :aoi-added (:event-type event)) (:aoi-needs event)
+          (= :aoi-removed (:event-type event)) (:aoi-needs event)
           (= :aoi-deleted (:event-type event)) #{}))
-      (topic-config "aoi-status"))))
+      (topic-config "aoi-state"))))
 
-
-
-(defn build-aoi-status-topology [builder f]
+(defn build-aoi-state-topology [builder f]
   (let [aoi-events-stream (j/kstream builder (topic-config "aois"))]
     (-> aoi-events-stream
       f
       (j/to-kstream)
-      (j/to (topic-config "aoi-status"))))
+      (j/to (topic-config "aoi-state"))))
   builder)
+
+
+(defn aoi-state [aoi-state-stream]
+  (-> aoi-state-stream
+    (j/filter (fn [[k v]] [k v]))))
+
+
+(defn build-state-topology [builder f]
+  (let [aoi-events-stream (j/kstream builder (topic-config "aoi-state"))]
+    (-> aoi-events-stream
+      f))
+  builder)
+
+
+
+
+
+(defn word-count [builder]
+  (let [aoi-events-stream (j/kstream builder (topic-config "streams-plaintext-input"))]
+    (-> aoi-events-stream))
+      ;(j/flat-map-values #(-> % :val .toLowerCase (clojure.string/split "\\W+")))
+      ;(j/group-by (fn [[k v]] v))
+      ;(j/count "counts-store")))
+      ;(j/to-kstream)
+      ;(j/to (topic-config "streams-wordcount-output"))))
+  builder)
+
+
+
+  
+
+
+
+
+
+
 
 
 

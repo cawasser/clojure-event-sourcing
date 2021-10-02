@@ -14,15 +14,15 @@
     (.get {:flight flight})))
 
 
-(defn get-one-aoi [streams aoi]
+(defn get-one-aoi [streams store aoi]
   (-> streams
-    (.store "aoi-status" (QueryableStoreTypes/keyValueStore))
+    (.store store (QueryableStoreTypes/keyValueStore))
     (.get {:aoi aoi})))
 
 
 (defn get-all-aois [streams]
   (let [s (-> streams
-            (.store "aoi-status" (QueryableStoreTypes/keyValueStore)))
+            (.store "aoi-state" (QueryableStoreTypes/keyValueStore)))
         k (.all s)]
     (into {}
       (map (fn [x]
@@ -55,3 +55,19 @@
 (defn friends-raw? [streams]
   (-> streams
     (.store "passenger-set" (QueryableStoreTypes/keyValueStore))))
+
+
+
+(comment
+
+  (def ktable-data {{:aoi "alpha"} #{[7 7 "hidef" 0]},
+                    {:aoi "bravo"} #{[9 9 "hidef" 0]}})
+
+  (first ktable-data)
+
+  (map (fn [[{aoi :aoi} v]]
+         {:id aoi :data-set v})
+   ktable-data)
+
+
+  ())

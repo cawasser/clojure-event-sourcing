@@ -7,3 +7,12 @@
    :replication-factor 1
    :key-serde (jse/serde)
    :value-serde (jse/serde)})
+
+
+
+(defn string-topic-config [name]
+  {:topic-name name
+   :partition-count 1
+   :replication-factor 1
+   :key-serde (jse/serde)
+   :value-serde (jse/serde)})
