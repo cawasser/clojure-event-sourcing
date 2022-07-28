@@ -49,7 +49,8 @@
 
 
 (def app-config {"bootstrap.servers"                     "localhost:9092"
-                 StreamsConfig/APPLICATION_ID_CONFIG     "word-count-test"
+                 StreamsConfig/APPLICATION_ID_CONFIG     "aoi-state"
+                 StreamsConfig/APPLICATION_SERVER_CONFIG "localhost:5051"
                  StreamsConfig/COMMIT_INTERVAL_MS_CONFIG 500
                  ConsumerConfig/AUTO_OFFSET_RESET_CONFIG "latest"
                  "acks"                                  "all"

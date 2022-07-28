@@ -3,7 +3,7 @@
 
 (defn topic-config [name]
   {:topic-name name
-   :partition-count 1
+   :partition-count 2
    :replication-factor 1
    :key-serde (jse/serde)
    :value-serde (jse/serde)})
